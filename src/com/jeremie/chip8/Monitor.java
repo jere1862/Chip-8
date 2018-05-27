@@ -45,7 +45,7 @@ public class Monitor extends JPanel {
         canvas.setRGB(x*scale, y*scale, scale, scale, unsetPixel, 0, 0);
     }
 
-    public boolean drawSprite(int x, int y, short[] sprite) {
+    public boolean drawSprite(int x, int y, byte[] sprite) {
         boolean collision = false;
         for(int i = 0; i < sprite.length; i++) {
             short line = sprite[i];
@@ -60,9 +60,9 @@ public class Monitor extends JPanel {
     }
 
     public void clearScreen() {
-        for(int i = 0; i < getHeight(); i++) {
-            for(int j = 0; j < getWidth(); j++) {
-                canvas.setRGB(i, j, Color.BLACK.getRGB());
+        for(int i = 0; i < 64; i++) {
+            for(int j = 0; j < 32; j++) {
+                unsetPixel(i, j);
             }
         }
     }
