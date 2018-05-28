@@ -8,7 +8,8 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 public class Runner extends JFrame {
-    private Monitor monitor;
+    private static final int FPS = 30;
+    private GameScreen gameScreen;
     private Chip8 chip8;
     private RomReader romReader;
     private Timer clock;
@@ -16,9 +17,9 @@ public class Runner extends JFrame {
 
     public Runner() {
         super("Chip-8");
-        monitor = new Monitor();
-        chip8 = new Chip8(monitor);
-        monitor.setKeyAdapter(new GameAdapter(this.chip8));
+        gameScreen = new GameScreen();
+        chip8 = new Chip8(gameScreen);
+        gameScreen.setKeyAdapter(new GameAdapter(this.chip8));
         romReader = new RomReader();
 
         this.actionListener = new ActionListener() {
@@ -28,7 +29,7 @@ public class Runner extends JFrame {
             }
         };
 
-        clock = new Timer(6, actionListener);
+        clock = new Timer(1/FPS, actionListener);
         clock.setRepeats(true);
         initializeFrame();
     }
@@ -42,7 +43,7 @@ public class Runner extends JFrame {
 
     private void initializeFrame() {
         setLayout(new BorderLayout());
-        add(monitor, BorderLayout.CENTER);
+        add(gameScreen, BorderLayout.CENTER);
         pack();
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -60,12 +61,12 @@ public class Runner extends JFrame {
 
         @Override
         public void keyReleased(KeyEvent e) {
-            this.chip8.setKey(mapKey(e));
+            this.chip8.unsetKey(mapKey(e));
         }
 
         @Override
         public void keyPressed(KeyEvent e) {
-            this.chip8.unsetKey(mapKey(e));
+            this.chip8.setKey(mapKey(e));
         }
     }
 

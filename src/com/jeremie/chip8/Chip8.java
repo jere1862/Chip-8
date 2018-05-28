@@ -33,12 +33,13 @@ public class Chip8 {
     private int programCounter;
     private int stackPointer = 0;
     private int indexPointer;
-    private Monitor monitor;
+    private byte[] monitor = new byte[64 * 32];
+    private GameScreen gameScreen;
 
-    public Chip8(Monitor monitor) {
+    public Chip8(GameScreen gameScreen) {
         this.programCounter = 0x200;
         this.memory = new byte[4096];
-        this.monitor = monitor;
+        this.gameScreen = gameScreen;
         copyFontSetToMemory();
     }
 
@@ -49,8 +50,7 @@ public class Chip8 {
     public void cycle() {
         decodeOpcode();
         executeOpcode();
-        //byte[] test = {(byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80};
-        //monitor.drawSprite(2, 0, test);
+        gameScreen.drawScreen(monitor);
 
         if(delayTimer > 0) {
             delayTimer--;
@@ -77,13 +77,10 @@ public class Chip8 {
     }
 
     private void clearScreen() {
-        monitor.clearScreen();
+        Arrays.fill(monitor, (byte)0x0);
     }
 
     public void executeOpcode() {
-        byte[] test = {(byte) 0xA0};
-        //monitor.drawSprite(0, 1, test);
-        //System.out.println(opcode);
         int vx = (opcode & 0xF00) >> 8;
         int vy = (opcode & 0xF0) >> 4;
 
@@ -250,11 +247,24 @@ public class Chip8 {
                 // Draw sprite
                 {
                     int height = opcode & 0xF,
-                        x = registers[vx],
-                        y = registers[vy];
+                        xOffset = registers[vx],
+                        yOffset = registers[vy];
 
-                    byte[] sprite = Arrays.copyOfRange(memory, indexPointer, indexPointer + height);
-                    boolean collision = monitor.drawSprite(x, y, sprite);
+
+                    boolean collision = false;
+                    for(int i = 0; i < height; i++) {
+                        byte line = memory[indexPointer];
+                        // Check for collision, then xor in the sprite
+                        // 8 pixels wide
+                        for (int j = 0; j < 8; j++) {
+                            int newBit = (line >> (7 - j)) & 1;
+                            int globalXPosition = (xOffset + j) % 64;
+                            int globalYPosition = (yOffset + (height -1)) % 32;
+                            int currentBitPosition = (globalXPosition)+ (64 * globalYPosition);
+                            collision = collision || ((monitor[currentBitPosition] & newBit) == 1);
+                            monitor[currentBitPosition] ^= newBit;
+                        }
+                    }
                     registers[15] = collision ? 1 : 0;
 
                 }
