@@ -1,4 +1,4 @@
-package com.jeremie.chip8;
+package com.jeremie.chip8.ui;
 
 import javax.swing.*;
 import java.awt.*;
@@ -30,7 +30,6 @@ public class GameScreen extends JPanel implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        //repaint();
     }
 
     @Override
@@ -41,17 +40,13 @@ public class GameScreen extends JPanel implements ActionListener {
     }
 
     public void drawScreen(byte[] screen) {
-        int[] rgb = new int[16];
-
-
-        //Screen is 64 by 32
         for(int i = 0; i < 32; i++) {
             for(int j = 0; j < 64; j++) {
                 byte pixel = screen[j + 64*i];
                 int[] pixelColor = (pixel == 1) ? whitePixel: blackPixel;
 
-                int xScaled = (j*scale) % DIMENSION.width;
-                int yScaled = (i*scale) % DIMENSION.height;
+                int xScaled = (j*scale);
+                int yScaled = (i*scale);
                 canvas.setRGB(xScaled, yScaled, scale, scale, pixelColor, 0, 0);
             }
         }

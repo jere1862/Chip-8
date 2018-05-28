@@ -1,4 +1,6 @@
-package com.jeremie.chip8;
+package com.jeremie.chip8.core;
+
+import com.jeremie.chip8.ui.GameScreen;
 
 import java.util.Arrays;
 
@@ -22,7 +24,6 @@ public class Chip8 {
             0xF0, 0x80, 0xF0, 0x80, 0x80		// F
     };
 
-    // Opcodes are stored big-endian
     private int opcode;
     private byte[] memory;
     private int[] registers = new int[16];
@@ -48,16 +49,20 @@ public class Chip8 {
     }
 
     public void cycle() {
-        decodeOpcode();
+        fetchOpcode();
         executeOpcode();
         gameScreen.drawScreen(monitor);
 
         if(delayTimer > 0) {
             delayTimer--;
         }
+
+        if(soundTimer > 0) {
+            soundTimer--;
+        }
     }
 
-    public void decodeOpcode() {
+    public void fetchOpcode() {
         int msb = memory[programCounter] & 0xFF;
         int lsb = memory[programCounter + 1] & 0xFF;
 
@@ -253,14 +258,14 @@ public class Chip8 {
 
                     boolean collision = false;
                     for(int i = 0; i < height; i++) {
-                        byte line = memory[indexPointer];
+                        byte line = memory[indexPointer + i];
                         // Check for collision, then xor in the sprite
                         // 8 pixels wide
                         for (int j = 0; j < 8; j++) {
                             int newBit = (line >> (7 - j)) & 1;
                             int globalXPosition = (xOffset + j) % 64;
-                            int globalYPosition = (yOffset + (height -1)) % 32;
-                            int currentBitPosition = (globalXPosition)+ (64 * globalYPosition);
+                            int globalYPosition = ((yOffset + i) % 32) * 64;
+                            int currentBitPosition = globalXPosition + globalYPosition;
                             collision = collision || ((monitor[currentBitPosition] & newBit) == 1);
                             monitor[currentBitPosition] ^= newBit;
                         }
@@ -385,8 +390,17 @@ public class Chip8 {
         return address;
     }
 
-    private void log(String input) {
-        System.out.println("Opcode: " + input);
+    private void printMonitor() {
+        for(int i = 0; i < 32; i++) {
+            for(int j = 0; j < 64; j++) {
+                if(monitor[j + 64*i] == 1) {
+                    System.out.print("0 ");
+                }else{
+                    System.out.print("- ");
+                }
+            }
+            System.out.println();
+        }
     }
 
     private void copyFontSetToMemory() {

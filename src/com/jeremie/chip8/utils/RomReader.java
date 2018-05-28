@@ -1,4 +1,4 @@
-package com.jeremie.chip8;
+package com.jeremie.chip8.utils;
 
 import java.io.*;
 import java.nio.ByteBuffer;

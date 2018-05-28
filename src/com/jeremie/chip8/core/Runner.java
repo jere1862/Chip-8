@@ -1,5 +1,7 @@
-package com.jeremie.chip8;
+package com.jeremie.chip8.core;
 
+import com.jeremie.chip8.ui.GameScreen;
+import com.jeremie.chip8.utils.RomReader;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -8,7 +10,6 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 public class Runner extends JFrame {
-    private static final int FPS = 30;
     private GameScreen gameScreen;
     private Chip8 chip8;
     private RomReader romReader;
@@ -21,15 +22,8 @@ public class Runner extends JFrame {
         chip8 = new Chip8(gameScreen);
         gameScreen.setKeyAdapter(new GameAdapter(this.chip8));
         romReader = new RomReader();
-
-        this.actionListener = new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                chip8.cycle();
-            }
-        };
-
-        clock = new Timer(1/FPS, actionListener);
+        actionListener = new MyActionListener();
+        clock = new Timer(1, actionListener);
         clock.setRepeats(true);
         initializeFrame();
     }
@@ -49,25 +43,6 @@ public class Runner extends JFrame {
         setLocationRelativeTo(null);
         setVisible(true);
         setResizable(false);
-    }
-
-
-    private class GameAdapter extends KeyAdapter {
-        private Chip8 chip8;
-
-        GameAdapter(Chip8 chip8) {
-            this.chip8 = chip8;
-        }
-
-        @Override
-        public void keyReleased(KeyEvent e) {
-            this.chip8.unsetKey(mapKey(e));
-        }
-
-        @Override
-        public void keyPressed(KeyEvent e) {
-            this.chip8.setKey(mapKey(e));
-        }
     }
 
     private int mapKey(KeyEvent e) {
@@ -107,6 +82,31 @@ public class Runner extends JFrame {
                 return 0xF;
             default:
                 return -1;
+        }
+    }
+
+    private class GameAdapter extends KeyAdapter {
+        private Chip8 chip8;
+
+        GameAdapter(Chip8 chip8) {
+            this.chip8 = chip8;
+        }
+
+        @Override
+        public void keyReleased(KeyEvent e) {
+            this.chip8.unsetKey(mapKey(e));
+        }
+
+        @Override
+        public void keyPressed(KeyEvent e) {
+            this.chip8.setKey(mapKey(e));
+        }
+    }
+
+    private class MyActionListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            chip8.cycle();
         }
     }
 }
