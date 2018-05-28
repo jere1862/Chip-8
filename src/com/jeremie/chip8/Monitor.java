@@ -2,21 +2,37 @@ package com.jeremie.chip8;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
 import java.awt.image.BufferedImage;
+import java.security.Key;
 import java.util.Arrays;
 
-public class Monitor extends JPanel {
-    private BufferedImage canvas;
+public class Monitor extends JPanel implements ActionListener {
     private static final int scale = 16;
+    private static final Dimension DIMENSION = new Dimension(64 * scale, 32 * scale);
+    private BufferedImage canvas;
     private int[] pixel = new int[scale*scale];
     private int[] unsetPixel = new int[scale*scale];
-    private static final Dimension dimension = new Dimension(64 * scale, 32 * scale);
+    private KeyAdapter keyAdapter;
 
     public Monitor() {
         Arrays.fill(pixel, Color.WHITE.getRGB());
-        this.setPreferredSize(this.dimension);
-        canvas = new BufferedImage(this.dimension.width, this.dimension.height, BufferedImage.TYPE_INT_ARGB);
+        this.setPreferredSize(DIMENSION);
+        this.canvas = new BufferedImage(DIMENSION.width, DIMENSION.height, BufferedImage.TYPE_INT_ARGB);
         this.setBackground(Color.BLACK);
+        setFocusable(true);
+    }
+
+    public void setKeyAdapter(KeyAdapter keyAdapter) {
+        this.keyAdapter = keyAdapter;
+        addKeyListener(keyAdapter);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        //repaint();
     }
 
     @Override
@@ -30,19 +46,20 @@ public class Monitor extends JPanel {
         // Returns true if a pixel was already set at this position
         // If one pixel was white, then all of them were in the upscaled one
         int[] rgb = new int[16];
+        int xScaled = (x*scale) % DIMENSION.width;
+        int yScaled = (y*scale) % DIMENSION.height;
 
-        canvas.getRGB(x*scale, y*scale, scale, scale, rgb, 0, 0);
+        canvas.getRGB(xScaled, yScaled, scale, scale, rgb, 0, 0);
         if(rgb[0] == -1) {
-            unsetPixel(x,y);
+            unsetPixel(xScaled,yScaled);
         }else{
-            canvas.setRGB(x*scale, y*scale, scale, scale, pixel, 0, 0);
+            canvas.setRGB(xScaled, yScaled, scale, scale, pixel, 0, 0);
         }
-
         return rgb[0] == -1;
     }
 
     public void unsetPixel(int x, int y) {
-        canvas.setRGB(x*scale, y*scale, scale, scale, unsetPixel, 0, 0);
+        canvas.setRGB(x, y, scale, scale, unsetPixel, 0, 0);
     }
 
     public boolean drawSprite(int x, int y, byte[] sprite) {
@@ -56,6 +73,8 @@ public class Monitor extends JPanel {
                 }
             }
         }
+
+        repaint();
         return collision;
     }
 

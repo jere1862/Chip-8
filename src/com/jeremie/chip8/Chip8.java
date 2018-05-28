@@ -46,6 +46,16 @@ public class Chip8 {
         System.arraycopy(rom, 0, memory, 0x200, rom.length);
     }
 
+    public void cycle() {
+        decodeOpcode();
+        executeOpcode();
+        //byte[] test = {(byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80, (byte) 0x80};
+        //monitor.drawSprite(2, 0, test);
+
+        if(delayTimer > 0) {
+            delayTimer--;
+        }
+    }
 
     public void decodeOpcode() {
         int msb = memory[programCounter] & 0xFF;
@@ -55,11 +65,15 @@ public class Chip8 {
     }
 
     public void setKey(int key) {
-        keyboard[key] = true;
+        if(key < 16) {
+            keyboard[key & 0xF] = true;
+        }
     }
 
     public void unsetKey(int key) {
-        keyboard[key] = false;
+        if(key < 16) {
+            keyboard[key & 0xF] = false;
+        }
     }
 
     private void clearScreen() {
@@ -67,14 +81,20 @@ public class Chip8 {
     }
 
     public void executeOpcode() {
+        byte[] test = {(byte) 0xA0};
+        //monitor.drawSprite(0, 1, test);
+        //System.out.println(opcode);
+        int vx = (opcode & 0xF00) >> 8;
+        int vy = (opcode & 0xF0) >> 4;
+
         switch(opcode >> 12) {
             case 0x0:
                 switch(opcode & 0xFF) {
-                    case 0XE0:
+                    case 0xE0:
                         clearScreen();
                         programCounter += 2;
                         break;
-                    case 0XEE:
+                    case 0xEE:
                         programCounter = stackPop();
                         break;
                 }
@@ -82,8 +102,7 @@ public class Chip8 {
             case 0x1:
                 // Goto NNN
                 {
-                    int address = opcode & 0xFFF;
-                    programCounter = address;
+                    programCounter = opcode & 0xFFF;
                 }
                 break;
             case 0x2:
@@ -99,7 +118,7 @@ public class Chip8 {
             case 0x3:
                 // Skip next instruction if Vx == kk
                 {
-                    int registerValue = registers[opcode & 0xF00];
+                    int registerValue = registers[vx];
                     if (registerValue == (opcode & 0xFF)) {
                         programCounter += 2;
                     }
@@ -109,7 +128,7 @@ public class Chip8 {
             case 0x4:
                 // Skip next instruction if Vx != kk
                 {
-                    int registerValue = registers[opcode & 0xF00];
+                    int registerValue = registers[vx];
                     if (registerValue != (opcode & 0xFF)) {
                         programCounter += 2;
                     }
@@ -118,81 +137,80 @@ public class Chip8 {
                 break;
             case 0x5:
                 // Skip next instruction if Vx == Vy
-                if(registers[opcode & 0xF00] == registers[opcode & 0xF0]){
+                if(registers[vx] == registers[vy]){
                     programCounter += 2;
                 }
                 programCounter += 2;
                 break;
             case 0x6:
                 // Vx = NN
-                registers[opcode & 0xF00] = (opcode & 0xFF);
+                registers[vx] = (opcode & 0xFF);
                 programCounter += 2;
                 break;
             case 0x7:
                 // Vx += NN, no carry
-                registers[opcode & 0xF00] += (opcode & 0xFF);
+                registers[vx] = (registers[vx] + (opcode & 0xFF)) & 0xFF;
                 programCounter += 2;
                 break;
             case 0x8:
                 switch(opcode & 0xF) {
-
                     case 0:
                         // Vx = Vy
-                        registers[opcode & 0xF00] = registers[opcode & 0xF0];
+                        registers[vx] = registers[vy];
                         programCounter += 2;
                         break;
                     case 1:
                         // Vx = Vx | Vy
-                        registers[opcode & 0xF00] |= registers[opcode & 0xF0];
+                        registers[vx] |= registers[vy];
                         programCounter += 2;
                         break;
                     case 2:
                         // Vx = Vx & Vy
-                        registers[opcode & 0xF00] &= registers[opcode & 0xF0];
+                        registers[vx] &= registers[vy];
                         programCounter += 2;
                         break;
                     case 3:
                         // Vx = Vx ^ Vy
-                        registers[opcode & 0xF00] ^= registers[opcode & 0xF0];
+                        registers[vx] ^= registers[vy];
                         programCounter += 2;
                         break;
                     case 4:
                         // Vx = Vx + Vy
                         {
-                            int result = registers[opcode & 0xF00] + registers[opcode & 0xF0];
+                            int result = registers[vx] + registers[vy];
                             if ((result & 0xF00) != 0) {
-                                registers[15] = result & 0x100;
+                                registers[15] = 1;
                             }
-                            registers[opcode & 0xF00] = result & 0xFF;
+                            registers[vx] = result & 0xFF;
                         }
                         programCounter += 2;
                         break;
                     case 5:
                         // Vx -= Vy
-                        if(registers[opcode & 0xF00] > registers[opcode & 0xF0]) {
+                        if(registers[vx] > registers[vy]) {
                             registers[15] = 1;
                         }
-                        registers[opcode & 0xF00] = (registers[opcode & 0xF00] - registers[opcode & 0xF0]) & 0xFF;
+                        registers[vx] = (registers[vx] - registers[vy]) & 0xFF;
                         programCounter += 2;
                         break;
                     case 6:
                         // See wiki
                         // Vx = Vy >> 1
-                        registers[opcode & 0xF00] = registers[opcode & 0xF0] >> 1;
-                        registers[15] = registers[opcode & 0xF0] & 1;
+                        registers[vx] = registers[vy] >> 1;
+                        registers[15] = registers[vy] & 1;
                         programCounter += 2;
                         break;
                     case 7:
                         // Vx = Vy - Vx
                         {
-                            int x = registers[opcode & 0xF00],
-                                y = registers[opcode & 0xF0],
+                            int x = registers[vx],
+                                y = registers[vy],
                                 x7 = x >> 7,
                                 y7 = y >> 7,
                                 r7 = (y - x) >> 7,
                                 borrow = (~y7 & x7) | (x7 & r7) | (r7 & ~y7);
 
-                            registers[opcode & 0xF00] = r7;
+                            registers[vx] = r7;
                             registers[15] = borrow;
                             programCounter += 2;
                         }
@@ -200,15 +218,15 @@ public class Chip8 {
                     case 0xE:
                         // See wiki
                         // Vx = Vy = Vy << 1
-                        registers[15] = registers[opcode & 0xF0] & 0x80;
-                        registers[opcode & 0xF00] = registers[opcode & 0xF0] <<= 1;
+                        registers[15] = registers[vy] & 0x80;
+                        registers[vx] = registers[vy] <<= 1;
                         programCounter += 2;
                         break;
                 }
                 break;
             case 0x9:
                 // skip if (Vx!=Vy)
-                if(registers[opcode & 0xF00] != registers[opcode & 0xF0]) {
+                if(registers[vx] != registers[vy]) {
                     programCounter += 2;
                 }
                 programCounter += 2;
@@ -225,16 +243,15 @@ public class Chip8 {
             case 0xC:
                 // See Wiki
                 // Vx = rand() & NN
-                registers[opcode & 0xF00] = ((int) Math.round(Math.random() * 256) - 1) & (opcode & 0xFF);
+                registers[vx] = ((int) Math.round(Math.random() * 256) - 1) & (opcode & 0xFF);
                 programCounter += 2;
                 break;
             case 0xD:
-                // See wiki
                 // Draw sprite
                 {
                     int height = opcode & 0xF,
-                        x = opcode & 0xF00,
-                        y = opcode & 0xF0;
+                        x = registers[vx],
+                        y = registers[vy];
 
                     byte[] sprite = Arrays.copyOfRange(memory, indexPointer, indexPointer + height);
                     boolean collision = monitor.drawSprite(x, y, sprite);
@@ -247,14 +264,14 @@ public class Chip8 {
                 switch(opcode & 0xFF) {
                     case 0x9E:
                         // Skip next instruction if key is pressed
-                        if(keyboard[opcode & 0xF00]) {
+                        if(keyboard[registers[vx]]) {
                             programCounter += 2;
                         }
                         programCounter += 2;
                         break;
                     case 0xA1:
                         // Skip next instruction if key is not pressed
-                        if(!keyboard[opcode & 0xF00]) {
+                        if(!keyboard[registers[vx]]) {
                             programCounter += 2;
                         }
                         programCounter += 2;
@@ -265,50 +282,55 @@ public class Chip8 {
                 switch(opcode & 0xFF) {
                     case 0x07:
                         // Vx = getDelay
-                        registers[opcode & 0xF00] = delayTimer;
+                        registers[vx] = delayTimer;
                         programCounter += 2;
                         break;
                     case 0x0A:
                         // Vx = getKey()
                         {
                             int i = 0;
-                            while(!keyboard[i] || i != 16) {
-                                i++;
+                            while(i != 16) {
+                                if(keyboard[i]) {
+                                    break;
+                                }else{
+                                    i++;
+                                }
                             }
 
                             if(i != 16) {
-                                registers[opcode & 0xF00] = i;
+                                registers[vx] = i;
                                 programCounter += 2;
                             }
                         }
                         break;
                     case 0x15:
                         // Set delayTimer to Vx
-                        delayTimer = registers[opcode & 0xF00];
+                        delayTimer = registers[vx];
                         programCounter += 2;
                         break;
                     case 0x18:
                         // Set sound_timer to Vx
-                        soundTimer = registers[opcode & 0xF00];
+                        soundTimer = registers[vx];
                         programCounter += 2;
                         break;
                     case 0x1E:
                         // I += VX
-                        indexPointer += registers[opcode & 0xF00];
+                        indexPointer += registers[vx];
                         programCounter += 2;
                         break;
                     case 0x29:
                         // I = sprite_addr[Vx]
                         // Since fonts start at 0, index pointer will be equal to Vx
-                        indexPointer = opcode & 0xF00;
+                        indexPointer = registers[vx];
+                        programCounter += 2;
                         break;
                     case 0x33:
                         // Stores BCD representation of VX
                         {
-                            int value = registers[opcode & 0xF00];
+                            int value = registers[vx];
                             int hundreds = (int) (value / 100.0);
-                            int tens = (int) ((value % 100) / 10);
-                            int units = (int) (value % 10);
+                            int tens = (value % 100) / 10;
+                            int units = value % 10;
                             memory[indexPointer] = (byte) hundreds;
                             memory[indexPointer + 1] = (byte) tens;
                             memory[indexPointer + 2] = (byte) units;
@@ -318,7 +340,6 @@ public class Chip8 {
                     case 0x55:
                         // Store V0 to Vx at memory I
                         {
-                            int vx = opcode & 0xF00;
                             for(int i = 0; i < vx + 1; i++) {
                                 byte register = (byte) registers[i];
                                 memory[indexPointer] = register;
@@ -330,7 +351,6 @@ public class Chip8 {
                     case 0x65:
                         // Fill V0 to Vx from memory using I
                         {
-                            int vx = opcode & 0xF00;
                             for(int i = 0; i < vx + 1; i++) {
                                 registers[i] = memory[indexPointer];
                                 indexPointer++;

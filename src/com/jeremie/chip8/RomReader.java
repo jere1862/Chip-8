@@ -11,9 +11,9 @@ public class RomReader {
 
         try {
             InputStream is = new FileInputStream(file);
-            byte byteRead;
-            while((byteRead = (byte) is.read()) != -1) {
-                bb.put(byteRead);
+            int byteRead;
+            while((byteRead = is.read()) != -1) {
+                bb.put((byte) (byteRead & 0xFF));
             }
         }catch(IOException ex) {
             ex.printStackTrace();
