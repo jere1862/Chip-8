@@ -11,19 +11,17 @@ import java.awt.event.KeyEvent;
 
 public class Runner extends JFrame {
     private GameScreen gameScreen;
-    private Chip8 chip8;
+    private Cpu cpu;
     private RomReader romReader;
     private Timer clock;
-    private ActionListener actionListener;
 
     public Runner() {
         super("Chip-8");
         gameScreen = new GameScreen();
-        chip8 = new Chip8(gameScreen);
-        gameScreen.setKeyAdapter(new GameAdapter(this.chip8));
+        cpu = new Cpu(gameScreen);
+        gameScreen.setKeyAdapter(new GameAdapter(this.cpu));
         romReader = new RomReader();
-        actionListener = new MyActionListener();
-        clock = new Timer(1, actionListener);
+        clock = new Timer(1, new MyActionListener());
         clock.setRepeats(true);
         initializeFrame();
     }
@@ -31,7 +29,7 @@ public class Runner extends JFrame {
 
     public void start(String gameName) {
         byte[] rom = romReader.read(gameName);
-        chip8.loadRom(rom);
+        cpu.loadRom(rom);
         clock.start();
     }
 
@@ -39,7 +37,7 @@ public class Runner extends JFrame {
         setLayout(new BorderLayout());
         add(gameScreen, BorderLayout.CENTER);
         pack();
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setVisible(true);
         setResizable(false);
@@ -86,27 +84,27 @@ public class Runner extends JFrame {
     }
 
     private class GameAdapter extends KeyAdapter {
-        private Chip8 chip8;
+        private Cpu cpu;
 
-        GameAdapter(Chip8 chip8) {
-            this.chip8 = chip8;
+        GameAdapter(Cpu cpu) {
+            this.cpu = cpu;
         }
 
         @Override
         public void keyReleased(KeyEvent e) {
-            this.chip8.unsetKey(mapKey(e));
+            this.cpu.unsetKey(mapKey(e));
         }
 
         @Override
         public void keyPressed(KeyEvent e) {
-            this.chip8.setKey(mapKey(e));
+            this.cpu.setKey(mapKey(e));
         }
     }
 
     private class MyActionListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
-            chip8.cycle();
+            cpu.cycle();
         }
     }
 }
