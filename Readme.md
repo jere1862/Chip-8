@@ -4,6 +4,7 @@ This is an emulator for the [Chip-8 virtual machine](https://en.wikipedia.org/wi
 
 ![gif](https://i.imgur.com/hm6vKd7.gif)
 
-##Also contains a debugging mode that allows you to step through each instruction or resume playback
+## Debug mode
+Allows you to step through each instruction or resume playback
 
 ![gif](https://i.imgur.com/zYsozBl.gif)
