@@ -8,12 +8,16 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class Runner extends JFrame {
     private GameScreen gameScreen;
     private Cpu cpu;
     private RomReader romReader;
     private Timer clock;
+    private Consumer<Integer> debugHandler;
+    private BiConsumer<Integer, int[]> informationUpdater;
 
     public Runner() {
         super("Chip-8");
@@ -26,11 +30,28 @@ public class Runner extends JFrame {
         initializeFrame();
     }
 
+    public void setDebuggerHandler(Consumer<Integer> handler) {
+        this.debugHandler = handler;
+    }
+
+    public void setInformationUpdater(BiConsumer<Integer, int[]> handler) {
+        this.informationUpdater = handler;
+    }
 
     public void start(String gameName) {
         byte[] rom = romReader.read(gameName);
         cpu.loadRom(rom);
         clock.start();
+    }
+
+    public void nextCycle() {
+        clock.setRepeats(false);
+        clock.restart();
+    }
+
+    public void resumeCycles() {
+        clock.setRepeats(true);
+        clock.restart();
     }
 
     private void initializeFrame() {
@@ -78,8 +99,12 @@ public class Runner extends JFrame {
                 return 0xB;
             case KeyEvent.VK_V:
                 return 0xF;
+            case KeyEvent.VK_SPACE:
+                return 0xFFF;
+            case KeyEvent.VK_ENTER:
+                return 0xFFE;
             default:
-                return -1;
+                return 0xFF;
         }
     }
 
@@ -92,12 +117,24 @@ public class Runner extends JFrame {
 
         @Override
         public void keyReleased(KeyEvent e) {
-            this.cpu.unsetKey(mapKey(e));
+            int intKey = mapKey(e);
+
+            if(intKey <= 0xF) {
+                this.cpu.unsetKey(intKey);
+            }
         }
 
         @Override
         public void keyPressed(KeyEvent e) {
-            this.cpu.setKey(mapKey(e));
+            int intKey = mapKey(e);
+
+            if(intKey > 0xFF && debugHandler != null) {
+                debugHandler.accept(intKey);
+            }
+
+            if(intKey <= 0xF) {
+                this.cpu.setKey(intKey);
+            }
         }
     }
 
@@ -105,6 +142,9 @@ public class Runner extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             cpu.cycle();
+            if(informationUpdater != null) {
+                informationUpdater.accept(cpu.getOpcode(), cpu.getRegisters());
+            }
         }
     }
 }

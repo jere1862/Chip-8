@@ -80,6 +80,14 @@ public class Cpu {
         }
     }
 
+    public int getOpcode() {
+        return opcode;
+    }
+
+    public int[] getRegisters() {
+        return registers;
+    }
+
     private void fetchOpcode() {
         int msb = memory[programCounter] & 0xFF;
         int lsb = memory[programCounter + 1] & 0xFF;
@@ -88,22 +96,6 @@ public class Cpu {
         vx = (opcode & 0xF00) >> 8;
         vy = (opcode & 0xF0) >> 4;
         programCounter += 2;
-    }
-
-    private void executeOpcode() {
-        commands[opcode >> 12].run();
-    }
-
-    private void aluOperation() {
-        aluOperations[opcode & 0xF].run();
-    }
-
-    private void keyOperation() {
-        keyOperations[opcode & 0x1].run();
-    }
-
-    private void miscOperation() {
-        miscOperations[opcode & 0xFF].run();
     }
 
     public void setKey(int key) {
@@ -340,6 +332,22 @@ public class Cpu {
         }
     }
 
+    private void executeOpcode() {
+        commands[opcode >> 12].run();
+    }
+
+    private void aluOperation() {
+        aluOperations[opcode & 0xF].run();
+    }
+
+    private void keyOperation() {
+        keyOperations[opcode & 0x1].run();
+    }
+
+    private void miscOperation() {
+        miscOperations[opcode & 0xFF].run();
+    }
+
     private void initializeMiscOperations() {
         miscOperations[0x07] = this::getDelayTimer;
         miscOperations[0x0A] = this::waitForKey;
@@ -362,19 +370,6 @@ public class Cpu {
         int address = stack[stackPointer];
         stack[stackPointer] = 0;
         return address;
-    }
-
-    private void printMonitor() {
-        for(int i = 0; i < 32; i++) {
-            for(int j = 0; j < 64; j++) {
-                if(monitor[j + 64*i] == 1) {
-                    System.out.print("0 ");
-                }else{
-                    System.out.print("- ");
-                }
-            }
-            System.out.println();
-        }
     }
 
     private void copyFontSetToMemory() {
